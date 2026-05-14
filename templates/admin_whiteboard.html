@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Интерактивная доска{% endblock %}
+{% block content %}
+<style>
+    .wb-container { display:flex; gap:15px; flex-wrap:wrap; }
+    .wb-toolbar { background:#fff; padding:12px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.1); width:220px; }
+    .wb-canvas-wrap { flex:1; min-width:300px; background:#f4f6f9; border-radius:10px; padding:10px; box-shadow:inset 0 0 10px rgba(0,0,0,0.05); }
+    canvas { background:#fff; border:1px solid #ddd; border-radius:8px; cursor:crosshair; width:100%; touch-action:none; }
+    .wb-btn { width:100%; padding:10px; margin:5px 0; border:none; border-radius:6px; cursor:pointer; font-weight:600; transition:0.2s; }
+    .wb-btn:hover { opacity:0.9; transform:translateY(-1px); }
+    .wb-btn.active { outline:2px solid #667eea; }
+    .wb-btn.pen { background:#2196F3; color:#fff; }
+    .wb-btn.hl { background:#FF9800; color:#fff; }
+    .wb-btn.clear { background:#f44336; color:#fff; }
+    .wb-btn.save { background:#4CAF50; color:#fff; }
+    .color-pick { display:flex; gap:8px; margin:10px 0; flex-wrap:wrap; }
+    .color-pick span { width:28px; height:28px; border-radius:50%; cursor:pointer; border:2px solid transparent; }
+    .color-pick span.active { border-color:#333; transform:scale(1.15); }
+    input[type="color"] { width:100%; height:35px; border:none; cursor:pointer; }
+    input[type="file"] { display:none; }
+    .file-label { display:block; padding:10px; background:#607D8B; color:#fff; border-radius:6px; text-align:center; cursor:pointer; margin:5px 0; }
+</style>
+
+<div class="wb-container">
+    <div class="wb-toolbar">
+        <h3 style="margin:0 0 15px;">🎨 Инструменты</h3>
+        <button class="wb-btn pen active" onclick="setTool('pen')">✏️ Маркер</button>
+        <button class="wb-btn hl" onclick="setTool('highlighter')">🖍️ Выделитель</button>
+
+        <div style="margin:15px 0 5px; font-weight:600;">Цвет:</div>
+        <div class="color-pick" id="palette">
+            <span style="background:#000000;" class="active" onclick="setColor(this)"></span>
+            <span style="background:#E53935;" onclick="setColor(this)"></span>
+            <span style="background:#1E88E5;" onclick="setColor(this)"></span>
+            <span style="background:#43A047;" onclick="setColor(this)"></span>
+            <span style="background:#FFB300;" onclick="setColor(this)"></span>
+            <span style="background:#8E24AA;" onclick="setColor(this)"></span>
+        </div>
+        <input type="color" id="customColor" onchange="setColor(this)" title="Свой цвет">
+
+        <div style="margin:15px 0 5px; font-weight:600;">Толщина:</div>
+        <input type="range" min="1" max="20" value="3" id="sizeRange" oninput="setSize(this.value)" style="width:100%;">
+
+        <label class="file-label">🖼️ Загрузить фото
+            <input type="file" id="imgUpload" accept="image/*" onchange="loadImage(this)">
+        </label>
+
+        <button class="wb-btn clear" onclick="clearBoard()">🗑 Очистить</button>
+        <button class="wb-btn save" onclick="saveBoard()">💾 Сохранить</button>
+    </div>
+
+    <div class="wb-canvas-wrap">
+        <canvas id="board"></canvas>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+let isDrawing = false;
+let tool = 'pen';
+let color = '#000000';
+let size = 3;
+
+function initCanvas() {
+    canvas.width = canvas.parentElement.clientWidth - 20;
+    canvas.height = Math.max(window.innerHeight - 180, 500);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+}
+window.onload = initCanvas;
+window.onresize = initCanvas;
+
+function setTool(t) {
+    tool = t;
+    document.querySelectorAll('.wb-btn.pen, .wb-btn.hl').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.wb-btn.${t === 'pen' ? 'pen' : 'hl'}`).classList.add('active');
+}
+function setColor(el) {
+    color = el.value || el.style.background;
+    document.querySelectorAll('#palette span').forEach(s => s.classList.remove('active'));
+    if(el.tagName === 'SPAN') el.classList.add('active');
+}
+function setSize(v) { size = parseInt(v); }
+
+function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function startDraw(e) { e.preventDefault(); isDrawing = true; draw(e); }
+function endDraw() { isDrawing = false; ctx.beginPath(); }
+function draw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    ctx.lineWidth = tool === 'highlighter' ? size * 4 : size;
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = tool === 'highlighter' ? 0.35 : 1.0;
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+}
+
+canvas.addEventListener('mousedown', startDraw);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', endDraw);
+canvas.addEventListener('mouseleave', endDraw);
+canvas.addEventListener('touchstart', startDraw, {passive:false});
+canvas.addEventListener('touchmove', draw, {passive:false});
+canvas.addEventListener('touchend', endDraw);
+
+function loadImage(input) {
+    const file = input.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const img = new Image();
+        img.onload = function() {
+            const scale = Math.min(canvas.width / img.width, canvas.height / img.height, 1);
+            const w = img.width * scale, h = img.height * scale;
+            ctx.drawImage(img, (canvas.width - w)/2, (canvas.height - h)/2, w, h);
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+}
+
+function clearBoard() {
+    if(confirm('Очистить доску? Все несохранённые рисунки будут удалены.')) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
+function saveBoard() {
+    const dataURL = canvas.toDataURL('image/png');
+    const title = prompt('Введите название доски:', 'Доска ' + new Date().toLocaleDateString()) || 'Без названия';
+    fetch('/admin/whiteboard/save', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({image: dataURL, title: title})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if(d.success) alert('✅ Доска сохранена в uploads!');
+        else alert('❌ Ошибка: ' + (d.error || 'Неизвестно'));
+    })
+    .catch(err => alert('❌ Ошибка сети'));
+}
+</script>
+{% endblock %}

@@ -933,6 +933,35 @@ def student_hw_results(hw_id):
 
     return render_template('student_hw_results.html', hw=hw, subs=subs)
 
+import base64
+import os
+
+@app.route('/admin/whiteboard')
+@login_required
+def admin_whiteboard():
+    if not current_user.is_admin: abort(403)
+    return render_template('admin_whiteboard.html')
+
+@app.route('/admin/whiteboard/save', methods=['POST'])
+@login_required
+def save_whiteboard():
+    if not current_user.is_admin: abort(403)
+    data = request.get_json()
+    image_b64 = data.get('image', '')
+    title = data.get('title', 'Доска').strip() or 'Без названия'
+
+    if not image_b64.startswith('data:image/png;base64,'):
+        return jsonify({'success': False, 'error': 'Неверный формат изображения'})
+
+    try:
+        img_bytes = base64.b64decode(image_b64.split(',')[1])
+        fn = f"whiteboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{secure_filename(title)}.png"
+        path = os.path.join(app.config['UPLOAD_FOLDER'], fn)
+        with open(path, 'wb') as f:
+            f.write(img_bytes)
+        return jsonify({'success': True, 'filename': fn})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
