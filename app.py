@@ -581,7 +581,7 @@ def stats():
 
 # ==================== ИНИЦИАЛИЗАЦИЯ ====================
 with app.app_context():
-    db.create_all()
+    #db.create_all()
     if not User.query.filter_by(login='admin').first():
         admin = User(login='admin', birth_date='01.01.2000', grade='admin', is_admin=True, agreed_terms=True)
         admin.set_password('admin123')
