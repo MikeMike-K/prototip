@@ -42,9 +42,43 @@ UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'upload
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# ==================== ИНИЦИАЛИЗАЦИЯ БД ====================
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+from sqlalchemy import inspect
+import logging
+
+
+def init_database():
+    """Гарантированно создаёт таблицы при запуске на Render"""
+    try:
+        with app.app_context():
+            inspector = inspect(db.engine)
+            existing_tables = inspector.get_table_names()
+
+            if not existing_tables or 'user' not in existing_tables:
+                logging.info("📦 Database tables not found. Creating...")
+                db.create_all()
+                db.session.commit()
+                logging.info("✅ Tables created: user, homework, theory, etc.")
+            else:
+                logging.info(f"✅ Tables already exist: {existing_tables}")
+    except Exception as e:
+        logging.error(f"❌ DB init error: {e}")
+        # Фолбэк: пробуем создать таблицы ещё раз
+        try:
+            with app.app_context():
+                db.create_all()
+                logging.info("✅ Tables created via fallback")
+        except Exception as e2:
+            logging.error(f"❌ Fallback also failed: {e2}")
+
+
+# Вызываем сразу после инициализации
+init_database()
+# =========================================================
 
 ALLOWED_VIDEO = {'mp4', 'webm', 'ogg', 'mov', 'avi'}
 ALLOWED_AUDIO = {'mp3', 'wav', 'ogg', 'aac', 'm4a'}
