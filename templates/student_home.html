@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Главная{% endblock %}
+{% block content %}
+<div style="text-align:center; padding:40px 20px;">
+    <h2 style="margin-bottom:30px;">👋 Привет, {{ current_user.login }}!</h2>
+
+    <div style="display:flex; justify-content:center; gap:30px; flex-wrap:wrap;">
+        <!-- Кнопка Теория -->
+        <a href="{{ url_for('student_theory') }}" class="card" style="width:250px; text-decoration:none; color:inherit; display:block; transition:transform 0.2s;">
+            <div style="padding:30px; text-align:center;">
+                <div style="font-size:48px; margin-bottom:15px;">📚</div>
+                <h3>Теория</h3>
+                <p style="color:#666; font-size:14px;">Учебные материалы от учителя</p>
+            </div>
+        </a>
+
+        <!-- Кнопка ДЗ -->
+        <a href="{{ url_for('student_homework') }}" class="card" style="width:250px; text-decoration:none; color:inherit; display:block; transition:transform 0.2s;">
+            <div style="padding:30px; text-align:center;">
+                <div style="font-size:48px; margin-bottom:15px;">📝</div>
+                <h3>Домашние задания</h3>
+                <p style="color:#666; font-size:14px;">Ваши задания на проверку</p>
+            </div>
+        </a>
+    </div>
+
+    <div style="margin-top:40px;">
+        <a href="{{ url_for('profile') }}" class="btn btn-primary">👤 Мой профиль</a>
+    </div>
+</div>
+{% endblock %}

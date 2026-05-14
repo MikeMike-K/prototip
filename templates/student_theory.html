@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Теория{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:25px;">📚 Ваши учебные материалы</h2>
+<a href="{{ url_for('home') }}" class="btn btn-primary" style="margin-bottom:20px;">← На главную</a>
+
+{% for theory in theories %}
+<div class="card">
+    <h3>{{ theory.title }}</h3>
+    {% if theory.comment %}<p style="color:#666; margin:10px 0;">{{ theory.comment }}</p>{% endif %}
+    <a href="{{ url_for('view_theory', theory_id=theory.id) }}" class="btn btn-success btn-sm">Открыть →</a>
+</div>
+{% else %}
+<div class="card" style="text-align:center; padding:40px;">
+    <p style="color:#999;">Учитель пока не назначил вам материалы</p>
+</div>
+{% endfor %}
+{% endblock %}

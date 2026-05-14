@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Добавить теорию{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:20px;">➕ Добавить теорию</h2>
+<a href="{{ url_for('admin_theory') }}" class="btn btn-primary" style="margin-bottom:20px;">← Назад</a>
+
+<form method="POST" enctype="multipart/form-data" class="card">
+    <div class="form-group">
+        <label>Название теории *</label>
+        <input type="text" name="title" required placeholder="Например: Квадратные уравнения">
+    </div>
+
+    <div class="form-group">
+        <label>Комментарий</label>
+        <textarea name="comment" rows="2" placeholder="Дополнительная информация..."></textarea>
+    </div>
+
+    <div class="form-group">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" name="assign_to_all" checked onchange="toggleStudents()" style="width:auto; margin:0;">
+            <strong>👨‍👩‍👧‍👦 Назначить всем ученикам</strong>
+        </label>
+        <div id="student-list" style="display:none; max-height:150px; overflow-y:auto; border:1px solid #ddd; padding:10px; border-radius:6px; margin-top:8px; background:#f8f9fa;">
+            {% for s in students %}
+            <label style="display:block; padding:4px 0; cursor:pointer;">
+                <input type="checkbox" name="assigned_students" value="{{ s.id }}"> {{ s.login }} ({{ s.grade }} класс)
+            </label>
+            {% else %}
+            <p style="color:#999; margin:0;">Нет зарегистрированных учеников</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <h3 style="margin:25px 0 10px; border-top:1px solid #eee; padding-top:15px;">📦 Вложения к теме</h3>
+    <div class="form-group"><label>🎬 Видео (можно несколько)</label><input type="file" name="main_videos" accept="video/*" multiple></div>
+    <div class="form-group"><label>🎧 Аудио (можно несколько)</label><input type="file" name="main_audios" accept="audio/*" multiple></div>
+    <div class="form-group"><label>📄 Файлы (можно несколько)</label><input type="file" name="main_files" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.png,.jpg,.jpeg" multiple></div>
+
+    <h3 style="margin:25px 0 10px; border-top:1px solid #eee; padding-top:15px;">📑 Подтемы</h3>
+    <div id="subs-container"></div>
+    <button type="button" class="btn btn-warning" onclick="addSubtopic()" style="margin:10px 0;">➕ Добавить подтему</button>
+
+    <button type="submit" class="btn btn-success" style="width:100%; margin-top:15px; padding:12px;">💾 Сохранить теорию</button>
+</form>
+
+<script>
+function toggleStudents() {
+    const list = document.getElementById('student-list');
+    list.style.display = document.querySelector('[name="assign_to_all"]').checked ? 'none' : 'block';
+}
+
+let subCounter = 0;
+function addSubtopic() {
+    const idx = subCounter++;
+    const container = document.getElementById('subs-container');
+    const div = document.createElement('div');
+    div.className = 'sub-card';
+    div.style.cssText = 'background:#f8f9fa; border:1px dashed #ccc; padding:15px; margin:10px 0; border-radius:8px; position:relative;';
+
+    div.innerHTML = `
+        <input type="hidden" name="subtopic_idx[]" value="${idx}">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <strong>Подтема #${idx + 1}</strong>
+            <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.sub-card').remove()">✕ Удалить</button>
+        </div>
+        <div class="form-group">
+            <label>Название подтемы</label>
+            <input type="text" name="subtopic_name[]" placeholder="Введите название">
+        </div>
+        <div class="form-group">
+            <label>🎬 Видео</label>
+            <input type="file" name="sub_videos_${idx}" accept="video/*" multiple>
+        </div>
+        <div class="form-group">
+            <label>🎧 Аудио</label>
+            <input type="file" name="sub_audios_${idx}" accept="audio/*" multiple>
+        </div>
+        <div class="form-group">
+            <label>📄 Файлы</label>
+            <input type="file" name="sub_files_${idx}" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.png,.jpg,.jpeg" multiple>
+        </div>
+    `;
+    container.appendChild(div);
+}
+// Создаём одну подтему по умолчанию при загрузке
+addSubtopic();
+</script>
+{% endblock %}

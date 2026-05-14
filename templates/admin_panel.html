@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Панель администратора{% endblock %}
+{% block content %}
+<h2 style="margin-bottom: 25px;">🛠 Панель администратора</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+    <div class="card" style="text-align:center;">
+        <h3 style="margin-bottom:15px;">👥 Админка</h3>
+        <p style="margin-bottom:15px; color:#666;">Управление учениками</p>
+        <a href="{{ url_for('admin_students') }}" class="btn btn-primary">Перейти</a>
+    </div>
+    <div class="card" style="text-align:center;">
+        <h3 style="margin-bottom:15px;">📖 Теория</h3>
+        <p style="margin-bottom:15px; color:#666;">Управление учебными материалами</p>
+        <a href="{{ url_for('admin_theory') }}" class="btn btn-success">Перейти</a>
+    </div>
+    <div class="card" style="text-align:center;">
+        <h3 style="margin-bottom:15px;">📝 ДЗ</h3>
+        <p style="margin-bottom:15px; color:#666;">Домашние задания</p>
+        <a href="{{ url_for('admin_homework') }}" class="btn btn-warning">Перейти</a>
+    </div>
+    <div class="card" style="text-align:center;">
+        <h3 style="margin-bottom:15px;">📊 Статистика / Ученики</h3>
+        <p style="margin-bottom:15px; color:#666;">Аналитика и статистика</p>
+        <a href="{{ url_for('stats') }}" class="btn btn-primary">Перейти</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Попытки учеников{% endblock %}
+{% block content %}
+<h2>📈 Попытки по ДЗ: {{ hw.title }}</h2>
+<a href="{{ url_for('admin_homework') }}" class="btn btn-primary" style="margin-bottom:20px;">← К списку ДЗ</a>
+
+<div class="card" style="margin-bottom:20px;">
+    <form method="GET" style="display:flex; gap:10px; align-items:center;">
+        <label style="font-weight:600;">Выберите ученика:</label>
+        <select name="student_id" onchange="this.form.submit()" style="padding:8px; border-radius:6px; flex:1;">
+            <option value="">-- Выберите --</option>
+            {% for s in students %}
+            <option value="{{ s.id }}" {% if sel_id == s.id %}selected{% endif %}>{{ s.login }} ({{ s.grade }} класс)</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+{% if attempts %}
+    <div class="card">
+        <h3>История попыток: {{ attempts[0].student.login }}</h3>
+        {% for s in attempts %}
+        <div style="padding:15px; border-bottom:1px solid #eee;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <strong>Попытка #{{ loop.index }}</strong>
+                <span style="color:{{ '#27ae60' if s.is_correct else '#e74c3c' }}; font-weight:bold;">
+                    {{ s.score }} / {{ s.max_score }} {{ '✅' if s.is_correct else '❌' }}
+                </span>
+                <span style="color:#666; font-size:13px;">{{ s.submitted_at.strftime('%d.%m.%Y %H:%M') }}</span>
+            </div>
+            {% for d in s.details|default([]) %}
+            <div style="background:#f9f9f9; padding:8px; border-radius:4px; margin:5px 0; font-size:14px;">
+                <b>{{ d.question }}</b><br>
+                Ответ: <span style="color:{{ '#27ae60' if d.is_correct else '#e74c3c' }};">{{ d.your_answer }}</span>
+                {% if not d.is_correct %} → Верно: <b>{{ d.correct_answer }}</b>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+{% elif sel_id %}
+    <div class="card" style="text-align:center; color:#999; padding:30px;">У ученика нет попыток по этому ДЗ</div>
+{% endif %}
+{% endblock %}

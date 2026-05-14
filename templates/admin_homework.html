@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}ДЗ - Админ{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h2>📝 Домашние задания</h2>
+    <a href="{{ url_for('admin_homework_add') }}" class="btn btn-success">➕ Задать ДЗ</a>
+</div>
+<div class="card">
+{% for h in hws %}
+    <div style="border-bottom:1px solid #eee; padding:15px 0; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <strong style="font-size:18px;">{{ h.title }}</strong>
+            {% if h.deadline %}
+                <span style="color:#e74c3c; margin-left:10px; font-size:14px;">⏰ до {{ h.deadline }}</span>
+            {% endif %}
+            <div style="color:#666; font-size:13px; margin-top:5px;">
+                Заданий: {{ h.tasks|length }} | Создано: {{ h.created_at.strftime('%d.%m.%Y %H:%M') }}
+            </div>
+            <div style="display:flex; gap:8px;">
+                <a href="{{ url_for('admin_homework_edit', hw_id=h.id) }}" class="btn btn-warning btn-sm">✏️ Изменить</a>
+                <a href="{{ url_for('admin_hw_review', hw_id=h.id) }}" class="btn btn-info btn-sm">👨‍🏫 Проверка</a>
+                <a href="{{ url_for('admin_hw_attempts', hw_id=h.id) }}" class="btn btn-info btn-sm">📊 Попытки</a>
+                <form method="POST" action="{{ url_for('admin_homework_delete', hw_id=h.id) }}" onsubmit="return confirm('Удалить ДЗ?');">
+                    <button type="submit" class="btn btn-danger btn-sm">🗑 Удалить</button>
+                </form>
+            </div>
+    </div>
+{% else %}
+    <p style="color:#999; text-align:center; padding:30px;">ДЗ пока не созданы</p>
+{% endfor %}
+</div>
+{% endblock %}

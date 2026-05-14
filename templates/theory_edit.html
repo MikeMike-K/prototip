@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Редактировать: {{ theory.title }}{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:25px;">✏️ Редактирование теории</h2>
+<a href="{{ url_for('admin_theory') }}" class="btn btn-primary" style="margin-bottom:20px;">← Назад</a>
+
+<form method="POST" enctype="multipart/form-data" class="card">
+    <div class="form-group">
+        <label>Название теории *</label>
+        <input type="text" name="title" value="{{ theory.title }}" required>
+    </div>
+    <div class="form-group">
+        <label>Комментарий</label>
+        <textarea name="comment" rows="3">{{ theory.comment }}</textarea>
+    </div>
+
+    <h3 style="margin:20px 0 10px;">📦 Основные вложения темы</h3>
+    {% for m in theory.main_videos %}
+    <div style="display:flex; justify-content:space-between; padding:8px; background:#f0f4ff; border-radius:6px; margin-bottom:5px;">
+        <span>🎬 {{ m.filename }}</span>
+        <a href="{{ url_for('delete_media', media_id=m.id, media_type='main_video') }}" class="btn btn-danger btn-sm">Удалить</a>
+    </div>
+    {% endfor %}
+    <div class="form-group"><label>Добавить видео:</label><input type="file" name="main_videos" accept="video/*" multiple></div>
+
+    {% for m in theory.main_audios %}
+    <div style="display:flex; justify-content:space-between; padding:8px; background:#fff3f0; border-radius:6px; margin-bottom:5px;">
+        <span>🎧 {{ m.filename }}</span>
+        <a href="{{ url_for('delete_media', media_id=m.id, media_type='main_audio') }}" class="btn btn-danger btn-sm">Удалить</a>
+    </div>
+    {% endfor %}
+    <div class="form-group"><label>Добавить аудио:</label><input type="file" name="main_audios" accept="audio/*" multiple></div>
+
+    {% for m in theory.main_files %}
+    <div style="display:flex; justify-content:space-between; padding:8px; background:#f0fff4; border-radius:6px; margin-bottom:5px;">
+        <span>📄 {{ m.filename }}</span>
+        <a href="{{ url_for('delete_media', media_id=m.id, media_type='main_file') }}" class="btn btn-danger btn-sm">Удалить</a>
+    </div>
+    {% endfor %}
+    <div class="form-group"><label>Добавить файлы:</label><input type="file" name="main_files" multiple></div>
+
+    <h3 style="margin:25px 0 10px;">📑 Подтемы</h3>
+    <div id="subtopics-container">
+        {% for sub in theory.subtopics %}
+        <div class="sub-card" style="background:#f8f9fa; border:1px dashed #ccc; padding:15px; margin:10px 0; border-radius:8px;">
+            <input type="hidden" name="subtopic_idx[]" value="{{ sub.id }}">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <strong>{{ sub.name }}</strong>
+                <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.sub-card').remove()">✕ Удалить</button>
+            </div>
+            <div class="form-group"><label>Название подтемы</label><input type="text" name="subtopic_name[]" value="{{ sub.name }}"></div>
+            <div class="form-group"><label>Видео:</label><input type="file" name="sub_videos_{{ sub.id }}" accept="video/*" multiple></div>
+            <div class="form-group"><label>Файлы:</label><input type="file" name="sub_files_{{ sub.id }}" multiple></div>
+        </div>
+        {% endfor %}
+    </div>
+    <button type="button" class="btn btn-warning" onclick="addSubtopic()" style="margin:10px 0;">➕ Добавить подтему</button>
+
+    <button type="submit" class="btn btn-success" style="width:100%; margin-top:15px; padding:12px;">💾 Сохранить изменения</button>
+</form>
+
+<script>
+let newSubCounter = 0;
+function addSubtopic() {
+    const idx = `new_${newSubCounter++}`;
+    const container = document.getElementById('subtopics-container');
+    const div = document.createElement('div');
+    div.className = 'sub-card';
+    div.style.cssText = 'background:#f8f9fa; border:1px dashed #ccc; padding:15px; margin:10px 0; border-radius:8px;';
+    div.innerHTML = `
+        <input type="hidden" name="subtopic_idx[]" value="${idx}">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <strong>Новая подтема</strong>
+            <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.sub-card').remove()">✕</button>
+        </div>
+        <div class="form-group"><label>Название</label><input type="text" name="subtopic_name[]" placeholder="Введите название"></div>
+        <div class="form-group"><label>Видео:</label><input type="file" name="sub_videos_${idx}" accept="video/*" multiple></div>
+        <div class="form-group"><label>Файлы:</label><input type="file" name="sub_files_${idx}" multiple></div>
+    `;
+    container.appendChild(div);
+}
+</script>
+{% endblock %}

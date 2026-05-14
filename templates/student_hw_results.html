@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Результаты{% endblock %}
+{% block content %}
+<h2>📊 Результаты: {{ hw.title }}</h2>
+<div class="card" style="text-align:center; margin-bottom:20px;">
+    <h3>Попыток сдано: {{ subs|length }}</h3>
+</div>
+
+{% for s in subs %}
+<div class="card" style="margin:15px 0; border-left:4px solid {{ '#27ae60' if s.is_correct else '#f39c12' }};">
+    <h4 style="margin-bottom:10px;">Попытка #{{ loop.index }} <span style="font-size:13px; color:#999;">{{ s.submitted_at.strftime('%d.%m %H:%M') }}</span></h4>
+
+    {% if s.task_type == 'blank' and s.details %}
+        <div style="margin-bottom:10px;">
+            <span style="background:#eef2ff; padding:4px 10px; border-radius:12px; font-size:13px;">{{ s.score }} / {{ s.max_score }} верных</span>
+        </div>
+        {% for d in s.details %}
+        <div style="padding:10px; background:#fafafa; border-radius:6px; margin-bottom:8px; display:flex; flex-wrap:wrap; gap:15px; align-items:center;">
+            <span style="font-weight:600; min-width:80px;">{{ d.q_text }}:</span>
+            <span style="padding:4px 8px; border-radius:4px; background:{{ '#d4edda' if d.is_correct else '#f8d7da' }}; color:{{ '#155724' if d.is_correct else '#721c24' }};">
+                Ваш ответ: {{ d.user_ans }}
+            </span>
+            {% if not d.is_correct %}
+                <button class="btn btn-sm btn-outline-primary" onclick="let el=this.nextElementSibling; if(el.style.display==='none'){el.style.display='inline'; this.textContent='🙈 Скрыть'} else{el.style.display='none'; this.textContent='👁 Узнать ответ'}">👁 Узнать ответ</button>
+                <span style="display:none; padding:4px 8px; border-radius:4px; background:#cce5ff; color:#004085; font-weight:600;">✅ {{ d.correct_ans }}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+{% elif s.task_type == 'quiz' and s.details %}
+    <div style="margin-bottom:10px;">
+        <span style="background:#eef2ff; padding:4px 10px; border-radius:12px; font-size:13px;">
+            {{ s.score }} / {{ s.max_score }} верных
+        </span>
+    </div>
+    {% for d in s.details %}
+        <div style="padding:10px; background:#fafafa; border-radius:6px; margin-bottom:8px; display:flex; flex-wrap:wrap; gap:15px; align-items:center;">
+            <span style="font-weight:600; min-width:80px;">{{ d.q_text }}:</span>
+            <span style="padding:4px 8px; border-radius:4px; background:{{ '#d4edda' if d.is_correct else '#f8d7da' }}; color:{{ '#155724' if d.is_correct else '#721c24' }};">
+                Ваш ответ: {{ d.user_ans }}
+            </span>
+            {% if not d.is_correct %}
+                {% set cor = d.correct_ans.strip() %}
+                {% if cor %}
+                    <button class="btn btn-sm btn-outline-primary" onclick="toggleCorAns(this)">👁 Узнать ответ</button>
+                    <span class="cor-ans-span" style="display:none; padding:4px 8px; border-radius:4px; background:#cce5ff; color:#004085; font-weight:600;">✅ {{ cor }}</span>
+                {% else %}
+                    <span style="color:#999; font-size:12px;">(учитель не указал правильный ответ)</span>
+                {% endif %}
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% elif s.needs_manual %}
+        <div style="padding:10px; background:#fafafa; border-radius:6px;">
+            <p style="margin:0 0 5px;"><b>📝 Текстовое задание</b></p>
+            {% if s.teacher_grade is not none %}
+                <div style="display:flex; gap:15px; align-items:center;">
+                    <span style="background:#d4edda; padding:4px 10px; border-radius:4px; font-weight:600;">Оценка: {{ s.teacher_grade }}</span>
+                    {% if s.teacher_comment %}
+                        <span style="color:#555; font-style:italic;">💬 {{ s.teacher_comment }}</span>
+                    {% endif %}
+                </div>
+            {% else %}
+                <span style="background:#fff3cd; padding:4px 10px; border-radius:4px; color:#856404;">⏳ Ждёт проверки учителем</span>
+            {% endif %}
+        </div>
+
+    {% elif s.task_type in ['text', 'text_file'] %}
+        <div style="padding:10px; background:#f8f9fa; border-radius:6px; color:#666;">
+            📝 Текстовое задание. Учитель проверит ответ вручную и выставит оценку позже.
+        </div>
+    {% endif %}
+</div>
+{% endfor %}
+<script>
+function toggleCorAns(btn) {
+    const span = btn.nextElementSibling;
+    if (span && span.classList.contains('cor-ans-span')) {
+        if(span.style.display === 'none') {
+            span.style.display = 'inline-block';
+            btn.textContent = '🙈 Скрыть';
+        } else {
+            span.style.display = 'none';
+            btn.textContent = '👁 Узнать ответ';
+        }
+    }
+}
+</script>
+
+<a href="{{ url_for('student_homework') }}" class="btn btn-primary" style="margin-top:20px;">← К списку ДЗ</a>
+{% endblock %}

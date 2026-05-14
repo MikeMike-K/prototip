@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Создать ДЗ{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:20px;">➕ Новое домашнее задание</h2>
+<a href="{{ url_for('admin_homework') }}" class="btn btn-primary" style="margin-bottom:20px;">← Назад</a>
+
+<form method="POST" enctype="multipart/form-data" class="card">
+    <div class="form-group"><label>Название ДЗ *</label><input type="text" name="title" required placeholder="Например: Контрольная по алгебре"></div>
+    <div class="form-group"><label>Срок сдачи (необязательно)</label><input type="datetime-local" name="deadline"></div>
+
+    <div class="form-group">
+        <label>👥 Назначить ученикам:</label>
+        <div style="max-height:150px; overflow-y:auto; border:1px solid #ddd; padding:8px; border-radius:6px;">
+            {% for s in students %}
+            <label style="display:block; padding:4px 0; cursor:pointer;">
+                <input type="checkbox" name="assigned_students" value="{{ s.id }}"> {{ s.login }} ({{ s.grade }} класс)
+            </label>
+            {% else %}
+            <p style="color:#999; margin:0;">Нет зарегистрированных учеников</p>
+            {% endfor %}
+        </div>
+        <p style="font-size:12px; color:#666; margin-top:5px;">💡 Если не выбрать никого — ДЗ будет видно всем</p>
+    </div>
+
+    <h3 style="margin:20px 0 10px;">Задания</h3>
+    <div id="tasks-container"></div>
+
+    <div style="display:flex; gap:10px; margin:10px 0; flex-wrap:wrap;">
+        <button type="button" class="btn btn-sm btn-warning" onclick="addTask('text')">📝 Текст</button>
+        <button type="button" class="btn btn-sm btn-warning" onclick="addTask('text_file')">📎 Текст + Файлы</button>
+        <button type="button" class="btn btn-sm btn-warning" onclick="addTask('blank')">🔤 Пропуски</button>
+        <button type="button" class="btn btn-sm btn-success" onclick="addTask('quiz')">🧩 Quiz</button>
+    </div>
+
+    <input type="hidden" name="tasks_json" id="tasks_json" value="[]">
+    <button type="submit" class="btn btn-success" style="width:100%; margin-top:15px; padding:12px;">💾 Опубликовать ДЗ</button>
+</form>
+
+<script>
+let tasks = [];
+
+function addTask(type) {
+    const id = tasks.length;
+    tasks.push({type, id, title:'', content:'', data:{}});
+    const div = document.createElement('div'); div.className='task-card'; div.id=`task_${id}`;
+    div.style.cssText='background:#f9f9f9;padding:15px;margin:10px 0;border-radius:8px;';
+
+    let names = {text:'📝 Текст', text_file:'📎 Текст + Файлы', blank:'🔤 Пропуски', quiz:'🧩 Quiz'};
+    let html = `<div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+        <strong>${names[type]}</strong>
+        <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.task-card').remove(); tasks=tasks.filter(t=>t.id!==${id});">✕</button>
+    </div>
+    <div class="form-group"><label>Заголовок задания *</label><input type="text" name="task_title_${id}" required></div>`;
+
+    if(type !== 'quiz') html += `<div class="form-group"><label>Текст задания</label><textarea name="task_content_${id}" rows="3"></textarea></div>`;
+    if(type === 'blank') html += `<div class="form-group"><label>Скрыть слова (через запятую)</label><input type="text" name="task_blanks_${id}" placeholder="слово1, слово2"></div>`;
+    if(type === 'text_file') html += `<div class="form-group"><label>Прикрепить файлы</label><input type="file" name="task_files_${id}" multiple></div>`;
+
+    if(type === 'quiz') {
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <strong>Вопросы квиза:</strong>
+            <button type="button" class="btn btn-sm btn-success" onclick="addQuizQ(${id})">➕ Добавить вопрос</button>
+        </div><div id="quiz_qs_${id}"></div>
+        <p style="font-size:12px; color:#666; margin-top:5px;">💡 Для каждого вопроса выберите: "Варианты" (с галочкой) или "Свой ответ" (поле ввода).</p>`;
+    }
+    div.innerHTML = html;
+    document.getElementById('tasks-container').appendChild(div);
+}
+
+function addQuizQ(tid) {
+    const container = document.getElementById(`quiz_qs_${tid}`);
+    const qIdx = container.querySelectorAll('.quiz-q-row').length;
+    const div = document.createElement('div'); div.className='quiz-q-row'; div.dataset.qidx = qIdx;
+    div.style.cssText = 'background:#fff; padding:12px; border-radius:6px; border:1px solid #ddd; margin-bottom:10px;';
+
+    div.innerHTML = `
+        <div style="display:flex; gap:5px; margin-bottom:5px;">
+            <input type="text" name="q_${tid}_${qIdx}_text" placeholder="Текст вопроса" style="flex:1; padding:6px;">
+            <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.quiz-q-row').remove()">✕</button>
+        </div>
+        <div style="display:flex; gap:15px; margin-bottom:5px;">
+            <label><input type="radio" name="q_${tid}_${qIdx}_type" value="text" checked onchange="toggleQuizOpts(${tid},${qIdx})"> Свой ответ</label>
+            <label><input type="radio" name="q_${tid}_${qIdx}_type" value="choice" onchange="toggleQuizOpts(${tid},${qIdx})"> Варианты ответов</label>
+        </div>
+        <div id="qopts_${tid}_${qIdx}" style="display:none; margin-left:10px; border-left:2px solid #ddd; padding-left:8px; margin-bottom:5px;">
+            <div class="opt-line" style="margin:4px 0;display:flex;gap:8px;align-items:center;">
+                <input type="radio" name="q_${tid}_${qIdx}_cor" value="">
+                <input type="text" name="q_${tid}_${qIdx}_opt_0" placeholder="Вариант 1" style="flex:1; padding:4px;">
+                <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">✕</button>
+            </div>
+            <button type="button" class="btn btn-sm btn-warning" onclick="addQuizOpt(${tid},${qIdx})">+ Вариант</button>
+        </div>
+        <div id="qcor_text_${tid}_${qIdx}" class="cor-text-field" style="margin-top:5px;">
+            <label style="font-size:13px;">Правильный ответ:</label>
+            <input type="text" name="q_${tid}_${qIdx}_cor_text" placeholder="Введите точный ответ" style="width:100%; padding:6px; border:1px solid #667eea; border-radius:4px;">
+        </div>
+    `;
+    container.appendChild(div);
+}
+
+function toggleQuizOpts(tid, qIdx) {
+    const isChoice = document.querySelector(`input[name="q_${tid}_${qIdx}_type"][value="choice"]`).checked;
+    document.getElementById(`qopts_${tid}_${qIdx}`).style.display = isChoice ? 'block' : 'none';
+    document.getElementById(`qcor_text_${tid}_${qIdx}`).style.display = isChoice ? 'none' : 'block';
+}
+
+function addQuizOpt(tid, qIdx) {
+    const box = document.getElementById(`qopts_${tid}_${qIdx}`);
+    const idx = box.querySelectorAll('.opt-line').length;
+    box.insertAdjacentHTML('beforeend', `<div class="opt-line" style="margin:4px 0;display:flex;gap:8px;align-items:center;">
+        <input type="radio" name="q_${tid}_${qIdx}_cor" value="">
+        <input type="text" name="q_${tid}_${qIdx}_opt_${idx}" placeholder="Вариант ${idx+1}" style="flex:1; padding:4px;">
+        <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">✕</button>
+    </div>`);
+}
+
+// Сбор данных при отправке формы
+document.querySelector('form').onsubmit = function() {
+    const arr = [];
+    document.querySelectorAll('.task-card').forEach(el => {
+        const id = parseInt(el.id.split('_')[1]);
+        const t = tasks.find(x=>x.id===id); if(!t) return;
+        const d = {title: el.querySelector(`[name="task_title_${id}"]`).value,
+                   content: el.querySelector(`[name="task_content_${id}"]`)?.value||'', data:{}};
+        if(t.type==='blank') d.data.hidden_words = (el.querySelector(`[name="task_blanks_${id}"]`).value||'').split(',').map(s=>s.trim()).filter(Boolean);
+        if(t.type==='quiz') {
+            const qs = [];
+            el.querySelectorAll('.quiz-q-row').forEach(row => {
+                const idx = parseInt(row.dataset.qidx);
+                const type = row.querySelector(`input[name="q_${id}_${idx}_type"]:checked`).value;
+                const cor = type==='choice' ? row.querySelector(`input[name="q_${id}_${idx}_cor"]:checked`)?.value : row.querySelector(`[name="q_${id}_${idx}_cor_text"]`)?.value.trim();
+                const opts = [...row.querySelectorAll(`[name^="q_${id}_${idx}_opt_"]`)].map(i=>i.value.trim()).filter(Boolean);
+                qs.push({q: row.querySelector(`[name="q_${id}_${idx}_text"]`).value.trim(), type, options: type==='choice'?opts:[], correct: cor||''});
+            });
+            d.data.questions = qs;
+        }
+        arr.push({type: t.type, id, ...d});
+    });
+    document.getElementById('tasks_json').value = JSON.stringify(arr);
+};
+</script>
+{% endblock %}

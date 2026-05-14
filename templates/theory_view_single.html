@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ theory.title }}{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:15px;">📖 {{ theory.title }}</h2>
+{% if theory.comment %}
+<div class="card" style="background:#eef2ff; border-left:4px solid #667eea; margin-bottom:20px;">
+    <p><strong>💬 Комментарий:</strong> {{ theory.comment }}</p>
+</div>
+{% endif %}
+<a href="{{ url_for('student_theory') }}" class="btn btn-primary" style="margin-bottom:20px;">← Назад</a>
+
+<!-- ОСНОВНЫЕ ВЛОЖЕНИЯ -->
+{% if theory.main_videos or theory.main_audios or theory.main_files %}
+<div class="card" style="margin-bottom:20px;">
+    <h3 style="margin-bottom:15px;">📦 Материалы к теме</h3>
+    {% for v in theory.main_videos %}
+    <video controls style="width:100%; max-width:700px; border-radius:8px; margin-bottom:15px; background:#000;">
+        <source src="{{ url_for('uploaded_file', filename=v.filename) }}" type="video/mp4">
+    </video>
+    {% endfor %}
+    {% for a in theory.main_audios %}
+    <div style="margin-bottom:10px; padding:10px; background:#f8f9fa; border-radius:8px;">
+        <audio controls style="width:100%;">
+            <source src="{{ url_for('uploaded_file', filename=a.filename) }}" type="audio/mpeg">
+        </audio>
+    </div>
+    {% endfor %}
+    {% for f in theory.main_files %}
+    <div style="display:flex; justify-content:space-between; padding:10px; background:#f8f9fa; border-radius:6px; margin-bottom:8px;">
+        <span>📄 {{ f.filename }}</span>
+        <a href="{{ url_for('uploaded_file', filename=f.filename) }}" class="btn btn-success btn-sm" download>⬇ Скачать</a>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- ПОДТЕМЫ -->
+{% for sub in theory.subtopics %}
+<div class="card" style="margin-bottom:20px;">
+    <h3 style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:8px;">📌 {{ sub.name }}</h3>
+
+    {% for v in sub.videos %}
+    <video controls style="width:100%; max-width:700px; border-radius:8px; margin-bottom:15px; background:#000;">
+        <source src="{{ url_for('uploaded_file', filename=v.filename) }}" type="video/mp4">
+    </video>
+    {% endfor %}
+
+    {% for f in sub.files %}
+    <div style="display:flex; justify-content:space-between; padding:10px; background:#f8f9fa; border-radius:6px; margin-bottom:8px;">
+        <span>📄 {{ f.filename }}</span>
+        <a href="{{ url_for('uploaded_file', filename=f.filename) }}" class="btn btn-success btn-sm" download>⬇ Скачать</a>
+    </div>
+    {% endfor %}
+
+    {% if not sub.videos and not sub.files %}
+    <p style="color:#999; font-style:italic;">К этой подтеме пока нет вложений</p>
+    {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

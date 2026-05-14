@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}{{ hw.title }}{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:10px;">{{ hw.title }}</h2>
+{% if hw.deadline %}<p style="color:#e74c3c; font-weight:600; margin-bottom:20px;">⏰ Срок: {{ hw.deadline }}</p>{% endif %}
+
+<form id="hw-form" method="POST" enctype="multipart/form-data" class="card">
+{% for t in hw.tasks %}
+    <div style="margin:15px 0; padding:15px; background:#f8f9fa; border-radius:8px; border:1px solid #e0e0e0;">
+        <h4 style="margin-bottom:10px;">{{ loop.index }}. {{ t.title }}
+            <span style="font-size:12px; color:#666;">({{ t.task_type }})</span>
+        </h4>
+
+        {% for f in t.files %}
+        <a href="{{ url_for('uploaded_file', filename=f.filename) }}" class="btn btn-sm btn-success" download style="margin:5px 0; display:block;">📎 {{ f.filename }}</a>
+        {% endfor %}
+
+        {% if t.task_type == 'blank' %}
+            <div id="blank_box_{{ t.id }}" style="line-height:2; font-size:16px;">{{ t.content | render_blanks((t.parsed or {}).get('hidden_words', [])) }}</div>
+
+        {% elif t.task_type == 'quiz' %}
+            {% set questions = (t.parsed or {}).get('questions', []) %}
+            {% for q in questions %}
+                {% set q_idx = loop.index0 %} {# ✅ Сохраняем индекс вопроса ДО вложенного цикла #}
+                <div style="margin:12px 0; padding:12px; background:white; border-radius:8px; border:1px solid #eee;">
+                    <p style="font-weight:600; margin:0 0 8px;">{{ loop.index }}. {{ q.q }}</p>
+                    {% if q.type == 'choice' and q.options %}
+                        {% for opt in q.options %}
+                        <label style="display:block; margin:6px 0; cursor:pointer; padding:4px; border-radius:4px;">
+                            <!-- ✅ Теперь name привязан к индексу вопроса, а не варианта -->
+                            <input type="radio" name="quiz_{{ t.id }}_{{ q_idx }}" value="{{ opt }}" style="margin-right:8px;"> {{ opt }}
+                        </label>
+                        {% endfor %}
+                    {% else %}
+                        <input type="text" name="quiz_{{ t.id }}_{{ q_idx }}" placeholder="Введите ваш ответ" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            {% else %}
+                {# 🔹 ПОКАЗЫВАЕМ ТЕКСТ ЗАДАНИЯ #}
+                {% if t.content %}
+                <div style="background:#eef2ff; padding:12px; border-radius:6px; margin-bottom:12px; border-left:3px solid #667eea;">
+                    <p style="margin:0; white-space:pre-wrap; font-size:15px;">{{ t.content }}</p>
+                </div>
+                {% endif %}
+
+                {# 🔹 ПОКАЗЫВАЕМ ФАЙЛЫ ОТ УЧИТЕЛЯ (для text_file) #}
+                {% if t.task_type == 'text_file' and t.files %}
+                <div style="margin-bottom:12px;">
+                    <p style="font-weight:600; margin:0 0 8px;">📎 Материалы от учителя:</p>
+                    {% for f in t.files %}
+                    <a href="{{ url_for('uploaded_file', filename=f.filename) }}" class="btn btn-sm btn-success" download style="margin:3px 0; display:block;">
+                        📄 {{ f.filename }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {# 🔹 ПОЛЕ ДЛЯ ОТВЕТА УЧЕНИКА #}
+                <label style="font-weight:600; display:block; margin-bottom:6px;">Ваш ответ:</label>
+                <textarea name="manual_text_{{ t.id }}" rows="4" placeholder="Напишите ваш ответ здесь..."
+                          style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; margin-bottom:10px; font-size:14px;"></textarea>
+
+                {# 🔹 ЗАГРУЗКА ФАЙЛОВ ОТ УЧЕНИКА #}
+                <div style="display:flex; gap:10px; flex-wrap:wrap; padding:12px; background:#fff; border-radius:6px; border:1px dashed #aaa;">
+                    <div style="flex:1; min-width:120px;">
+                        <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">📎 Файл:</label>
+                        <input type="file" name="manual_file_{{ t.id }}" style="width:100%; font-size:13px;">
+                    </div>
+                    <div style="flex:1; min-width:120px;">
+                        <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">🎧 Аудио:</label>
+                        <input type="file" name="manual_audio_{{ t.id }}" accept="audio/*" style="width:100%; font-size:13px;">
+                    </div>
+                    <div style="flex:1; min-width:120px;">
+                        <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">🎬 Видео:</label>
+                        <input type="file" name="manual_video_{{ t.id }}" accept="video/*" style="width:100%; font-size:13px;">
+                    </div>
+                </div>
+                <p style="font-size:11px; color:#777; margin-top:6px;">* Все поля необязательны. Загрузите то, что нужно.</p>
+            {% endif %}
+    </div>
+{% endfor %}
+
+<input type="hidden" name="answers_json" id="answers_json">
+<button type="submit" class="btn btn-success" style="width:100%; padding:12px; margin-top:10px;">📤 Отправить</button>
+</form>
+
+<script>
+document.getElementById('hw-form').addEventListener('submit', function() {
+    const ans = {};
+
+    {% for t in hw.tasks %}
+        {% if t.task_type == 'blank' %}
+            const b_{{ t.id }} = {};
+            document.querySelectorAll('#blank_box_{{ t.id }} .blank-input').forEach(inp => {
+                const idx = inp.getAttribute('data-blank-idx');
+                if (idx !== null) {
+                    // ✅ Сохраняем даже пустые ответы, чтобы ключи были в JSON
+                    b_{{ t.id }}[`blank_${idx}`] = inp.value.trim();
+                }
+            });
+            ans['{{ t.id }}'] = b_{{ t.id }};
+
+        {% elif t.task_type == 'quiz' %}
+            const qs_{{ t.id }} = {};
+            {% set qc = (t.parsed or {}).get('questions', [])|length %}
+            {% for i in range(qc) %}
+                const r_{{ i }} = document.querySelector(`input[name="quiz_{{ t.id }}_{{ i }}"]:checked`);
+                const f_{{ i }} = document.querySelector(`input[name="quiz_{{ t.id }}_{{ i }}"]`);
+                // ✅ Сохраняем ответ (даже пустой) с правильным ключом
+                qs_{{ t.id }}[`{{ i }}`] = r_{{ i }} ? r_{{ i }}.value : (f_{{ i }} ? f_{{ i }}.value.trim() : '');
+            {% endfor %}
+            ans['{{ t.id }}'] = qs_{{ t.id }};
+        {% endif %}
+    {% endfor %}
+
+    document.getElementById('answers_json').value = JSON.stringify(ans);
+    // Форма отправится естественно, собрав все textarea и файлы
+});
+</script>
+{% endblock %}

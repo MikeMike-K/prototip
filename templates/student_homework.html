@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}ДЗ{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:20px;">📝 Ваши домашние задания</h2>
+<div class="card">
+{% for h in hws %}
+    <div style="border-bottom:1px solid #eee; padding:15px 0; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <strong style="font-size:18px;">{{ h.title }}</strong>
+            {% if h.deadline %}<span style="color:#e74c3c; margin-left:10px;">⏰ до {{ h.deadline }}</span>{% endif %}
+        </div>
+        <a href="{{ url_for('student_hw_do', hw_id=h.id) }}" class="btn btn-primary btn-sm">Выполнить →</a>
+    </div>
+{% else %}
+    <p style="text-align:center; color:#999; padding:30px;">Нет активных заданий</p>
+{% endfor %}
+</div>
+{% endblock %}

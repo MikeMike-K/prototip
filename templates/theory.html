@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Управление теорией{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+    <h2>📖 Управление теорией</h2>
+    <a href="{{ url_for('add_theory') }}" class="btn btn-success">➕ Добавить теорию</a>
+</div>
+
+{% for theory in theories %}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+            <h3>{{ theory.title }}</h3>
+            <p style="color:#666; font-size:13px; margin-top:5px;">
+                Подтем: {{ theory.subtopics|length }} |
+                Создана: {{ theory.created_at.strftime('%d.%m.%Y') }}
+            </p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            {% if theory.is_visible %}
+                <span style="background:#d4edda; color:#155724; padding:4px 10px; border-radius:12px; font-size:12px; align-self:center;">✅ Видна</span>
+            {% else %}
+                <span style="background:#f8d7da; color:#721c24; padding:4px 10px; border-radius:12px; font-size:12px; align-self:center;">❌ Скрыта</span>
+            {% endif %}
+            <a href="{{ url_for('edit_theory', theory_id=theory.id) }}" class="btn btn-warning btn-sm">✏️ Редактировать</a>
+            <a href="{{ url_for('toggle_theory', theory_id=theory.id) }}" class="btn btn-sm {% if theory.is_visible %}btn-danger{% else %}btn-success{% endif %}">
+                {% if theory.is_visible %}🙈 Скрыть{% else %}👁 Показать{% endif %}
+            </a>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% if not theories %}
+<div class="card" style="text-align:center; padding:50px;">
+    <p style="color:#999;">Теорий пока нет. Добавьте первую!</p>
+</div>
+{% endif %}
+{% endblock %}

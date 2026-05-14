@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Профиль{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 600px;">
+    <h2 style="margin-bottom: 25px;">👤 Профиль пользователя</h2>
+    <table style="width:100%; border-collapse: collapse;">
+        <tr>
+            <td style="padding:12px; font-weight:600; border-bottom:1px solid #eee;">Логин</td>
+            <td style="padding:12px; border-bottom:1px solid #eee;">{{ current_user.login }}</td>
+        </tr>
+        <tr>
+            <td style="padding:12px; font-weight:600; border-bottom:1px solid #eee;">Дата рождения</td>
+            <td style="padding:12px; border-bottom:1px solid #eee;">{{ formatted_date }}</td>
+        </tr>
+        <tr>
+            <td style="padding:12px; font-weight:600; border-bottom:1px solid #eee;">Класс</td>
+            <td style="padding:12px; border-bottom:1px solid #eee;">{{ current_user.grade }} класс</td>
+        </tr>
+        <tr>
+            <td style="padding:12px; font-weight:600; border-bottom:1px solid #eee;">Роль</td>
+            <td style="padding:12px; border-bottom:1px solid #eee;">
+                {% if current_user.is_admin %}Администратор{% else %}Ученик{% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:12px; font-weight:600;">Дата регистрации</td>
+            <td style="padding:12px;">{{ current_user.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+        </tr>
+    </table>
+    <div style="margin-top: 25px;">
+        <a href="{{ url_for('home') }}" class="btn btn-primary">← На главную</a>
+    </div>
+</div>
+{% endblock %}

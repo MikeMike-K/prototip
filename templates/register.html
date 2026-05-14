@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Регистрация{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 50px auto;">
+    <h2 style="text-align:center; margin-bottom: 25px;">📝 Регистрация</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label>Логин</label>
+            <input type="text" name="login" required placeholder="Введите логин">
+        </div>
+        <div class="form-group">
+            <label>Пароль</label>
+            <input type="password" name="password" required placeholder="Введите пароль">
+        </div>
+        <div class="form-group">
+            <label>Подтверждение пароля</label>
+            <input type="password" name="confirm_password" required placeholder="Повторите пароль">
+        </div>
+        <div class="form-group">
+            <label>Дата рождения</label>
+            <input type="date" name="birth_date" required>
+        </div>
+        <div class="form-group">
+            <label>Класс обучения</label>
+            <select name="grade" required>
+                <option value="">Выберите класс</option>
+                {% for i in range(1, 12) %}
+                <option value="{{ i }}">{{ i }} класс</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="display:flex; align-items:flex-start; gap:8px; margin-top:20px;">
+            <input type="checkbox" name="agreed_terms" id="agreed" required style="width:auto; margin-top:3px;">
+            <label for="agreed" style="font-weight:normal; font-size:13px;">
+                Я даю согласие на обработку персональных данных в соответствии с
+                <a href="#" style="color:#667eea;">Пользовательским соглашением</a>
+            </label>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:15px;">Зарегистрироваться</button>
+    </form>
+    <p style="text-align:center; margin-top:15px;">
+        Уже есть аккаунт? <a href="{{ url_for('login') }}" style="color:#667eea;">Войти</a>
+    </p>
+</div>
+{% endblock %}

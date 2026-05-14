@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Теория{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:25px;">📖 Учебные материалы</h2>
+
+{% for theory in theories %}
+<div class="card" style="cursor:pointer;" onclick="window.location='{{ url_for('view_theory', theory_id=theory.id) }}'">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <h3>{{ theory.title }}</h3>
+            <p style="color:#666; font-size:13px; margin-top:5px;">
+                Подтем: {{ theory.subtopics|length }} | {{ theory.created_at.strftime('%d.%m.%Y') }}
+            </p>
+        </div>
+        <span class="btn btn-primary btn-sm">Открыть →</span>
+    </div>
+</div>
+{% endfor %}
+
+{% if not theories %}
+<div class="card" style="text-align:center; padding:50px;">
+    <p style="color:#999;">Материалов пока нет</p>
+</div>
+{% endif %}
+{% endblock %}
