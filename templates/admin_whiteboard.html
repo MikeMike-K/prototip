@@ -10,21 +10,33 @@
     #overlay-layer { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
 
     .overlay-item { position:absolute; pointer-events:auto; user-select:none; transition:box-shadow 0.2s; }
-    .overlay-item:hover, .overlay-item.active { box-shadow:0 0 0 2px #667eea; }
+    .overlay-item:hover, .overlay-item.active { box-shadow:0 0 0 2px #667eea; border-radius:4px; }
 
     .overlay-img img { width:100%; height:100%; object-fit:contain; pointer-events:none; }
     .overlay-text {
-        min-width:60px; min-height:30px; padding:6px 10px;
-        background:rgba(255,255,255,0.9); border:1px dashed transparent;
+        min-width:60px; min-height:30px; padding:6px 8px;
+        background:rgba(255,255,255,0.95); border:1px solid #ddd; border-radius:4px;
         font-family:sans-serif; font-size:16px; color:#333; cursor:text;
-        outline:none; word-break:break-word;
+        outline:none; word-break:break-word; line-height:1.4; overflow:auto;
     }
     .overlay-text:focus { border-color:#667eea; background:#fff; cursor:text; box-shadow:none; }
     .overlay-text:empty::before { content:"Введите текст..."; color:#aaa; pointer-events:none; }
 
-    .resize-handle { position:absolute; bottom:-6px; right:-6px; width:12px; height:12px; background:#667eea; border-radius:50%; cursor:nwse-resize; display:none; }
-    .del-btn { position:absolute; top:-10px; right:-10px; width:20px; height:20px; background:#f44336; color:#fff; border:none; border-radius:50%; cursor:pointer; display:none; font-size:12px; line-height:20px; text-align:center; z-index:10; }
-    .overlay-item:hover .resize-handle, .overlay-item:hover .del-btn, .overlay-item.active .resize-handle, .overlay-item.active .del-btn { display:block; }
+    /* Кнопки управления */
+    .del-btn {
+        position:absolute; top:-11px; right:-11px; width:22px; height:22px;
+        background:#e53935; color:#fff; border:2px solid #fff; border-radius:50%;
+        cursor:pointer; display:none; font-size:14px; line-height:18px; text-align:center;
+        z-index:40; box-shadow:0 2px 6px rgba(0,0,0,0.25);
+    }
+    .del-btn:hover { background:#c62828; transform:scale(1.1); }
+    .resize-handle {
+        position:absolute; bottom:-7px; right:-7px; width:14px; height:14px;
+        background:#667eea; border:2px solid #fff; border-radius:50%;
+        cursor:nwse-resize; display:none; z-index:40; box-shadow:0 2px 6px rgba(0,0,0,0.25);
+    }
+    .overlay-item:hover .resize-handle, .overlay-item:hover .del-btn,
+    .overlay-item.active .resize-handle, .overlay-item.active .del-btn { display:block; }
 
     .wb-btn { width:100%; padding:10px; margin:5px 0; border:none; border-radius:6px; cursor:pointer; font-weight:600; transition:0.2s; }
     .wb-btn:hover { opacity:0.9; transform:translateY(-1px); }
@@ -63,7 +75,7 @@
         <input type="range" min="1" max="25" value="3" id="sizeRange" oninput="size=parseInt(this.value)" style="width:100%;">
 
         <label class="file-label">🖼️ Загрузить фото<input type="file" id="imgUpload" accept="image/*" onchange="addImage(this)" hidden></label>
-        <p style="font-size:11px; color:#666; margin:5px 0;">💡 Клик по тексту → редактировать. Клик по рамке → переместить.</p>
+        <p style="font-size:11px; color:#666; margin:5px 0;">💡 Клик по тексту → редактировать. Тяните за синий кружок → изменить размер.</p>
 
         <button class="wb-btn clear" onclick="clearBoard()">🗑 Очистить</button>
         <button class="wb-btn save" onclick="saveBoard()">💾 Сохранить</button>
@@ -141,42 +153,42 @@ function addText() {
 function createOverlay(type, content, w, h) {
     const div = document.createElement('div');
     div.className = `overlay-item overlay-${type}`;
-    div.style.cssText = `left:30px;top:30px;width:${w}px;min-height:${h}px;`;
+    div.style.cssText = `left:40px;top:40px;width:${w}px;min-height:${h}px;`;
 
     if(type==='text') {
         div.contentEditable = true;
         div.innerHTML = content;
         div.spellcheck = false;
-        // Автофокус сразу после добавления
         requestAnimationFrame(() => div.focus());
     } else {
         div.innerHTML = `<img src="${content}" draggable="false">`;
     }
 
-    // Кнопки управления
+    // Кнопка удаления (правый верхний угол)
     const delBtn = document.createElement('button');
-    delBtn.className = 'del-btn'; delBtn.textContent = '×';
-    delBtn.onclick = (e) => { e.stopPropagation(); div.remove(); };
+    delBtn.className = 'del-btn'; delBtn.textContent = '×'; delBtn.title = 'Удалить';
+    delBtn.onclick = (e) => { e.stopPropagation(); e.preventDefault(); div.remove(); };
 
+    // Ручка ресайза (правый нижний угол)
     const resHandle = document.createElement('div');
     resHandle.className = 'resize-handle';
 
     div.appendChild(delBtn); div.appendChild(resHandle);
+    document.getElementById('overlay-layer').appendChild(div);
 
-    // Логика фокуса/перетаскивания
+    // Управление фокусом/выделением
     div.addEventListener('mousedown', e => {
         if(type==='text' && document.activeElement === div) {
-            e.stopPropagation(); // Позволяем выделять/печатать текст
+            e.stopPropagation(); // Разрешаем выделение/печать
             return;
         }
-        if(e.target.classList.contains('del-btn') || e.target.classList.contains('resize-handle')) return;
+        if(e.target === delBtn || e.target === resHandle) return;
         activate(div);
     });
 
-    div.addEventListener('focus', () => { div.classList.add('active'); div.style.pointerEvents='auto'; });
-    div.addEventListener('blur', () => { div.classList.remove('active'); div.style.pointerEvents='auto'; });
+    div.addEventListener('focus', () => { div.classList.add('active'); });
+    div.addEventListener('blur', () => { div.classList.remove('active'); });
 
-    document.getElementById('overlay-layer').appendChild(div);
     makeDraggable(div);
     makeResizable(div);
 }
@@ -200,16 +212,22 @@ function makeDraggable(el) {
     document.addEventListener('mouseup', () => isDragging=false);
 }
 
+// ✅ Исправленный ресайз: меняет и ширину, и высоту
 function makeResizable(el) {
     const handle = el.querySelector('.resize-handle');
-    let isResizing=false, sw,sh,sx,sy;
+    let isResizing=false, startW, startH, startX, startY;
     handle.addEventListener('mousedown', e => {
-        isResizing=true; sw=el.offsetWidth; sh=el.offsetHeight; sx=e.clientX; sy=e.clientY; e.preventDefault(); e.stopPropagation();
+        isResizing=true;
+        startW=el.offsetWidth; startH=el.offsetHeight;
+        startX=e.clientX; startY=e.clientY;
+        e.preventDefault(); e.stopPropagation();
     });
     document.addEventListener('mousemove', e => {
         if(!isResizing) return;
-        el.style.width=Math.max(50,sw+e.clientX-sx)+'px';
-        if(el.classList.contains('overlay-text')) el.style.height='auto';
+        const newW = Math.max(60, startW + (e.clientX - startX));
+        const newH = Math.max(30, startH + (e.clientY - startY));
+        el.style.width = newW + 'px';
+        el.style.height = newH + 'px';
     });
     document.addEventListener('mouseup', () => isResizing=false);
 }
@@ -225,7 +243,6 @@ function saveBoard() {
     const title = prompt('Название доски:', 'Доска '+new Date().toLocaleDateString()) || 'Без названия';
     const stage = document.getElementById('wb-stage');
 
-    // Скрываем UI перед снимком
     document.querySelectorAll('.del-btn, .resize-handle').forEach(el=>el.style.display='none');
     document.querySelectorAll('.overlay-item').forEach(el=>el.style.boxShadow='none');
 

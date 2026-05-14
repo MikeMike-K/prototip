@@ -6,14 +6,24 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-change-it-2026'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///school.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
-app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB
+import os
 
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+app = Flask(__name__)
+
+# 🔑 Секретный ключ из переменных окружения (обязательно для Render)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-local-key-change-me')
+
+# 🗃 База данных: автоматически переключается между SQLite (локально) и PostgreSQL (Render)
+db_url = os.environ.get('DATABASE_URL')
+if db_url and db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)  # SQLAlchemy фикс
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url or 'sqlite:///instance/school.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# 📁 Папка загрузок
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
