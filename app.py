@@ -584,14 +584,7 @@ def stats():
     return f'<h1>📊 Статистика</h1><p>Учеников: {students_count}</p><p>Теорий: {theories_count}</p><a href="/">← На главную</a>'
 
 # ==================== ИНИЦИАЛИЗАЦИЯ ====================
-with app.app_context():
-    #db.create_all()
-    if not User.query.filter_by(login='admin').first():
-        admin = User(login='admin', birth_date='01.01.2000', grade='admin', is_admin=True, agreed_terms=True)
-        admin.set_password('admin123')
-        db.session.add(admin)
-        db.session.commit()
-        print("✅ Админ создан: login=admin, password=admin123")
+
 
 import json
 
@@ -997,6 +990,30 @@ def delete_whiteboard(filename):
     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     if os.path.exists(path): os.remove(path)
     return jsonify({'success': True})
+
+
+# ✅ БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ АДМИНА
+def init_admin():
+    """Создаёт админа, если таблица существует и админа нет"""
+    with app.app_context():
+        try:
+            # Проверяем, создана ли таблица (попытка запроса)
+            if User.query.first() is None or not User.query.filter_by(login='admin').first():
+                # Создаём админа только если его нет
+                if not User.query.filter_by(login='admin').first():
+                    admin = User(login='admin', grade='0', is_admin=True, agreed_terms=True)
+                    admin.set_password('admin123')
+                    db.session.add(admin)
+                    db.session.commit()
+                    print("✅ Admin user created")
+        except Exception as e:
+            # Если таблицы ещё не созданы — игнорируем, они создадутся при первом реальном запросе
+            print(f"⏳ DB not ready yet: {e}")
+
+# Запускаем инициализацию (безопасно, так как внутри with_app_context)
+init_admin()
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
