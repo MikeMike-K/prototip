@@ -8,17 +8,21 @@ from werkzeug.utils import secure_filename
 
 import os
 
-app = Flask(__name__)
+import os
 
-# 🔑 Секретный ключ из переменных окружения (обязательно для Render)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-local-key-change-me')
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-me-in-prod')
+
+# 🗃 БАЗА ДАННЫХ: Только SQLite в /tmp/ для Render
+# Это работает с любой версией Python, не требует psycopg2
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/school.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 🗃 База данных: автоматически переключается между SQLite (локально) и PostgreSQL (Render)
 db_url = os.environ.get('DATABASE_URL')
 if db_url and db_url.startswith('postgres://'):
     db_url = db_url.replace('postgres://', 'postgresql://', 1)  # SQLAlchemy фикс
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url or 'sqlite:///instance/school.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 
 # 📁 Папка загрузок
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
