@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Галерея досок{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:20px;">🖼️ Сохранённые доски</h2>
+<a href="{{ url_for('admin_whiteboard') }}" class="btn btn-primary" style="margin-bottom:20px;">← Вернуться к доске</a>
+
+{% if files %}
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:15px;">
+    {% for f in files %}
+    <div style="background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+        <img src="{{ url_for('uploaded_file', filename=f) }}" style="width:100%; height:180px; object-fit:cover; cursor:pointer;" onclick="viewImg(this.src)">
+        <div style="padding:10px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:13px; color:#555;">{{ f.replace('whiteboard_','').replace('.png','') }}</span>
+            <button class="btn btn-sm btn-danger" onclick="delImg('{{ f }}', this)">🗑</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card" style="text-align:center; padding:40px; color:#999;">Пока нет сохранённых досок</div>
+{% endif %}
+
+<!-- Модальное окно просмотра -->
+<div id="imgModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999; justify-content:center; align-items:center; cursor:pointer;" onclick="this.style.display='none'">
+    <img id="modalImg" style="max-width:90%; max-height:90%; border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+</div>
+
+<script>
+function viewImg(src) { document.getElementById('modalImg').src=src; document.getElementById('imgModal').style.display='flex'; }
+function delImg(fname, btn) {
+    if(!confirm('Удалить эту доску навсегда?')) return;
+    fetch(`/admin/whiteboard/delete/${fname}`, {method:'POST'})
+    .then(r=>r.json()).then(d => {
+        if(d.success) btn.closest('div').parentElement.remove();
+        else alert('Ошибка удаления');
+    });
+}
+</script>
+{% endblock %}

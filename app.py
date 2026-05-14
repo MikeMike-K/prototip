@@ -963,5 +963,26 @@ def save_whiteboard():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+import os
+import glob
+
+@app.route('/admin/whiteboard/gallery')
+@login_required
+def whiteboard_gallery():
+    if not current_user.is_admin: abort(403)
+    folder = app.config['UPLOAD_FOLDER']
+    # Ищем только файлы досок
+    files = sorted([f for f in os.listdir(folder) if f.startswith('whiteboard_') and f.endswith('.png')], reverse=True)
+    return render_template('admin_whiteboard_gallery.html', files=files)
+
+@app.route('/admin/whiteboard/delete/<filename>', methods=['POST'])
+@login_required
+def delete_whiteboard(filename):
+    if not current_user.is_admin: abort(403)
+    if '..' in filename or not filename.endswith('.png'): return jsonify({'success': False})
+    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if os.path.exists(path): os.remove(path)
+    return jsonify({'success': True})
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
