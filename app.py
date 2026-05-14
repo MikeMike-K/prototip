@@ -23,13 +23,43 @@ logger.info("🚀 App starting on Render...")
 logger.info(f"DATABASE_URL: {os.environ.get('DATABASE_URL', 'NOT SET')}")
 logger.info(f"SECRET_KEY set: {bool(os.environ.get('SECRET_KEY'))}")
 
+import os
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-me-in-prod')
 
-# 🗃 БАЗА ДАННЫХ: Только SQLite в /tmp/ для Render
-# Это работает с любой версией Python, не требует psycopg2
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/school.db'
+# 🗃 БАЗА ДАННЫХ: Строгая логика для Render
+db_url = os.environ.get('DATABASE_URL')
+
+if db_url:
+    # Фикс для старых схем URL в Render
+    if db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,  # Проверка соединения перед запросом
+        'pool_recycle': 300,    # Переподключение каждые 5 минут
+    }
+    print(f"✅ Using PostgreSQL: {db_url[:50]}...")
+else:
+    # Локально используем SQLite
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    db_path = os.path.join(basedir, 'instance', 'school.db')
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    print(f"✅ Using SQLite: {db_path}")
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# 📁 Папка загрузок
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# Инициализация расширений
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
 # 🗃 База данных: автоматически переключается между SQLite (локально) и PostgreSQL (Render)
 db_url = os.environ.get('DATABASE_URL')
@@ -52,31 +82,32 @@ import logging
 
 
 def init_database():
-    """Гарантированно создаёт таблицы при запуске на Render"""
+    """Гарантированно создаёт таблицы в активной БД"""
     try:
         with app.app_context():
+            from sqlalchemy import inspect
             inspector = inspect(db.engine)
             existing_tables = inspector.get_table_names()
 
             if not existing_tables or 'user' not in existing_tables:
-                logging.info("📦 Database tables not found. Creating...")
+                logging.info("📦 Creating database tables...")
                 db.create_all()
                 db.session.commit()
-                logging.info("✅ Tables created: user, homework, theory, etc.")
+                logging.info("✅ Tables created")
             else:
                 logging.info(f"✅ Tables already exist: {existing_tables}")
     except Exception as e:
         logging.error(f"❌ DB init error: {e}")
-        # Фолбэк: пробуем создать таблицы ещё раз
+        # Фолбэк: пробуем ещё раз
         try:
             with app.app_context():
                 db.create_all()
                 logging.info("✅ Tables created via fallback")
         except Exception as e2:
-            logging.error(f"❌ Fallback also failed: {e2}")
+            logging.error(f"❌ Fallback failed: {e2}")
 
 
-# Вызываем сразу после инициализации
+# Вызов сразу после инициализации расширений
 init_database()
 # =========================================================
 
