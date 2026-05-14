@@ -10,6 +10,19 @@ import os
 
 import os
 
+import logging, sys, os, traceback
+
+# 🔥 Включаем подробные логи для Render
+logging.basicConfig(
+    stream=sys.stdout,
+    level=logging.DEBUG,
+    format='[%(levelname)s] %(message)s'
+)
+logger = logging.getLogger(__name__)
+logger.info("🚀 App starting on Render...")
+logger.info(f"DATABASE_URL: {os.environ.get('DATABASE_URL', 'NOT SET')}")
+logger.info(f"SECRET_KEY set: {bool(os.environ.get('SECRET_KEY'))}")
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-me-in-prod')
 
@@ -1013,7 +1026,30 @@ def init_admin():
 # Запускаем инициализацию (безопасно, так как внутри with_app_context)
 init_admin()
 
+@app.route('/health')
+def health():
+    try:
+        # Проверяем подключение к БД
+        db.session.execute(db.text('SELECT 1'))
+        return jsonify({
+            'status': 'ok',
+            'db': 'connected',
+            'tables': db.engine.table_names() if hasattr(db.engine, 'table_names') else 'unknown'
+        }), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
+# 🔍 Обработчик ошибок для отладки на Render
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"❌ 500 Error: {error}")
+    logger.error(f"Traceback: {traceback.format_exc()}")
+    # В продакшене не показываем детали пользователю
+    return "Внутренняя ошибка сервера. Администратор уведомлен.", 500
+
+@app.errorhandler(404)
+def not_found(error):
+    return "Страница не найдена", 404
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
